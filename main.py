@@ -41,5 +41,5 @@ def handle_logging(client, userdata, level, buf):
 if __name__ == '__main__':
     mqtt.subscribe(BROKER_TOPIC)
     print(mqtt.topics)
-    app.run()
+    app.run(host="0.0.0.0", port=5000)
 
