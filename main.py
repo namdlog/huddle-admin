@@ -20,21 +20,23 @@ BROKER_TOPIC = 'HUDDLE_MATERIAIS'
 
 mqtt = Mqtt(app)
 socketio = SocketIO(app)
-db = SQLAlchemy(app)
+#db = SQLAlchemy(app)
+result = []
 
 
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return {"data": result}
 
 
 @mqtt.on_message()
 def handle_mqtt_message(client, userdata, message):
     data = dict(
         topic=message.topic,
-        payload=message.payload.decode()
+        payload=json.loads(message.payload.decode())
     )
     print(data)
+    result.append(data)
     socketio.emit('mqtt_message', data=data)
 
 
