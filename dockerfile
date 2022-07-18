@@ -1,10 +1,11 @@
 FROM python:3.10-alpine
 
 WORKDIR /app
-COPY . .
-RUN \
- apk add --no-cache postgresql-libs && \
- apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
- pip install -r requirements.txt
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+COPY * /app/
+RUN apk update && apk add postgresql-dev gcc python3-dev musl-dev
+RUN pip install -r requirements.txt
 
-CMD ["python main.py"]
+CMD ["python", "main.py", "db", "upgrade"]
+CMD  ["python", "main.py", "runserver", "0.0.0.0:5000"]
