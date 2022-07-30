@@ -1,8 +1,8 @@
 from flask import Flask, jsonify, request
 import json
+from flask import jsonify
 from flask_socketio import SocketIO
 import os
-from flask_mqtt import Mqtt
 from flask_migrate import Migrate
 from seed import *
 from models.equipment import *
@@ -13,16 +13,11 @@ from responses.alert import *
 import datetime
 from sqlalchemy.orm import aliased
 from dateutil import parser
+from flask_mqtt import Mqtt
+from app import setup_flask_app
+from models.main import *
 
-app = Flask(__name__)
-app.config['MQTT_BROKER_URL'] = os.getenv('BROKER_URL')
-app.config['MQTT_BROKER_PORT'] = int(os.getenv('BROKER_PORT'))
-app.config['MQTT_USERNAME'] = os.getenv('BROKER_USERNAME')
-app.config['MQTT_PASSWORD'] = os.getenv('BROKER_PASSWORD')
-app.config['MQTT_REFRESH_TIME'] = 1.0  # refresh time in seconds
-app.config['sqlalchemy.url'] = os.getenv('DB_URL')
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('DB_URL')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app = setup_flask_app()
 BROKER_TOPIC_MATERIAL = 'MATERIALS'
 BROKER_TOPIC_EQUIPMENT = 'HUDDLE_EQUIPAMENTOS'
 
@@ -38,6 +33,8 @@ migrate.init_app(app, db)
 result_material = []
 result_equipment = []
 
+app = setup_flask_app()
+BROKER_TOPIC = 'HUDDLE_MATERIAIS'
 
 
 @app.route("/")
@@ -48,7 +45,7 @@ def hello_world():
 @app.route("/alerts")
 def alerts():
     query = AlertMaterial.query.all()
-    if(query is None):
+    if query is None:
         return []
     else:
         for q in query:
@@ -90,7 +87,6 @@ def equipments():
     print(EquipmentMeasurement.query.first().__dict__)
 
     return jsonify(EquipmentMeasurement.query.all())
-
 
 
 def handle_mqtt_material(obj):
@@ -147,22 +143,8 @@ def handle_mqtt(client, userdata, message):
     )
     result_material.append(data['payload'])
     obj = data['payload']
-    if(data["topic"] == "MATERIALS"):
+    if data["topic"] == "MATERIALS":
         handle_mqtt_material(obj)
-
-
-#@mqtt.on_message()
-#def handle_mqtt_equipment(client, userdata, message):
-#    print("FLAAAAAAAAAAAAAG 1")
-#    data = dict(
-#        topic=message.topic,
-#        payload=json.loads(message.payload.decode())
-#    )
-#    print(data)
-#    result_equipment.append(data['payload'])
-#    obj = data['payload']
-#    print(obj)
-#    socketio.emit('mqtt_message', data=data)
 
 
 @mqtt.on_log()
@@ -174,10 +156,5 @@ def handle_logging(client, userdata, level, buf):
 if __name__ == '__main__':
     mqtt.subscribe(BROKER_TOPIC_MATERIAL)
     mqtt.subscribe(BROKER_TOPIC_EQUIPMENT)
-    # with app.app_context():
-    #     #f =MaterialMeasurement.query.first()
-    #     #if f is None:
-    #     #    seedMaterials(db)
-    #     #MaterialMeasurement.query.delete()
-    #     seedMaterials(db)
+    print(mqtt.topics)
     app.run(host="0.0.0.0", port=5000, debug=True)
