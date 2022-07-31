@@ -1,7 +1,7 @@
 import os
 from flask_migrate import Migrate
 from flask import Flask
-from models.models import db
+from models.main import db
 
 
 def set_environments_var(app):
