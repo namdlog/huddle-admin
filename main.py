@@ -30,11 +30,11 @@ def alerts():
             max_humidity = float(os.getenv('MAX_HUMIDITY'))
             temps_bool = [ m.temperature > max_temperature or m.temperature < min_temperature for m in query_material]
             hum_bool = [ m.humidity > max_humidity or m.humidity < min_humidity for m in query_material]
-            if(all(hum_bool)):
+            if all(hum_bool):
                 q.humidities = query_material
             else:
                 q.humidities = []
-            if(all(temps_bool)):
+            if all(temps_bool):
                 q.temperatures = query_material
             else:
                 q.temperatures = []
