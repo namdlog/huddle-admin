@@ -13,8 +13,9 @@ DB_URL=postgresql://postgres:postgres@db:5432/postgres
 ## Migras as models 
 docker-compose up db 
 ### Em outra aba 
-docker-compose run flask sh 
+docker-compose run flask sh
 export FLASK_APP= main
+flask db init
 flask db migrate 
 flask db upgrade
 
