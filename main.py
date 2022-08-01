@@ -2,7 +2,9 @@ from flask import request, jsonify
 from models.equipment import *
 from models.material import *
 from models.alert import *
+from models.task import *
 from responses.alert import *
+from responses.task import *
 from app import setup_flask_app
 from broker import setup_mqtt_broker, result_material, MAX_HUMIDITY, MIN_HUMIDITY, MAX_TEMPERATURE, MIN_TEMPERATURE
 
@@ -64,6 +66,69 @@ def equipments():
 
     return jsonify(EquipmentMeasurement.query.all())
 
+@app.route("/task", methods=['POST'])
+def create_task():
+  created_at = datetime.now()
+  responsable_id = request.json['responsable_id']
+  status = request.json['status']
+  date_to_complete = datetime.strptime(request.json['date_to_complete'], '%d/%m/%Y %H:%M:%S')
+  alert_id = request.json['alert_id']
+  task = Task(created_at=created_at, responsable_id=responsable_id, status=status, date_to_complete=date_to_complete, alert_id=alert_id)
+  db.session.add(task)
+  db.session.commit()
+
+
+@app.route("/tasks", methods=['GET'])
+def tasks():
+    query_tasks = Task.query.all()
+    
+    schema = TaskSchema(many=True)
+    result = schema.dumps(query_tasks)
+    return result
+
+@app.route("/task", methods=['GET'])
+def task():
+    args = request.args
+    if "taskId" in args:
+        query_task = Task.query\
+                         .filter(Task.id == args["taskId"]).all()
+    else:
+      query_task = Task.query.all()
+
+    schema = TaskSchema(many=True)
+    result = schema.dumps(query_task)
+    return result
+
+@app.route("/task", methods=['DELETE'])
+def delete_task():
+    task_id = request.json['id']
+    if task_id >= 0:
+        Task.query.filter(Task.id == task_id).delete()
+    else:
+      return {}
+
+    db.session.commit()
+    return {}
+
+@app.route("/task", methods=['PUT'])
+def update_task():
+    task_id = request.json['id']
+    responsable_id = request.json['responsableId']
+    status = request.json['status']
+    date_to_complete = request.json['dateToComplete']
+    alert_id = request.json['alertId']
+
+    if task_id >= 0:
+        task = Task.query.get(task_id)
+        task.responsable_id = responsable_id
+        task.status = status
+        task.date_to_complete = date_to_complete
+        task.alert_id = alert_id
+    else:
+      return {}
+
+    db.session.commit()
+    return {}
 
 if __name__ == '__main__':
     print(mqtt.topics)
