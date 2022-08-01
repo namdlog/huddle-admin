@@ -1,7 +1,7 @@
 # Como rodar localmente
 
 ## Docker
-### Definir variavéis de ambiente no arquivo `.env` na raiz do projeto
+### Definir variavéis de ambiente no arquivo `.env` na raiz do projeto como está no .env.example
 ```sh
 BROKER_URL=;
 BROKER_PORT=;
@@ -9,6 +9,18 @@ BROKER_USERNAME=;
 BROKER_PASSWORD=;
 DB_URL=postgresql://postgres:postgres@db:5432/postgres
 ```
+
+## Migras as models 
+docker-compose up db 
+### Em outra aba 
+docker-compose run flask sh
+export FLASK_APP= main
+flask db init
+cd migrations
+mkdir versions
+flask db migrate 
+flask db upgrade
+
 
 ### Inicializar com docker-compose
 ```sh
