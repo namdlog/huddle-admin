@@ -4,7 +4,6 @@ from models.main import db
 class Alert(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     material_alert = db.relationship('AlertMaterial', backref='alerts_material', lazy=False)
-    
 
 
 class AlertMaterial(db.Model):

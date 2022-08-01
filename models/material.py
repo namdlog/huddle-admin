@@ -1,12 +1,4 @@
-from datetime import datetime
-from dataclasses import dataclass
-
-from sqlalchemy import false
-
 from models.main import db
-
-
-
 
 
 class Device(db.Model):
@@ -21,7 +13,7 @@ class SensorsMaterial(db.Model):
     place = db.Column(db.String(256))
     measurements = db.relationship('MaterialMeasurement', backref='sensor', lazy=False)
     device_id = db.Column(db.BigInteger, db.ForeignKey('device.id'),
-        nullable=True)
+                          nullable=True)
 
 
 class MaterialMeasurement(db.Model):
@@ -29,7 +21,9 @@ class MaterialMeasurement(db.Model):
     temperature = db.Column(db.Numeric, nullable=True)
     humidity = db.Column(db.Numeric, nullable=True)
     sensor_id = db.Column(db.BigInteger, db.ForeignKey('sensors_material.id'),
-        nullable=True)
+                          nullable=True)
     timeOfMeasurements = db.Column(db.DateTime, nullable=True)
-    begin_alert = db.relationship('AlertMaterial', backref='beginmeasure', lazy=False, foreign_keys="AlertMaterial.begin_meassurement_id")
-    end_alert = db.relationship('AlertMaterial', backref='endmeasure', lazy=False, foreign_keys="AlertMaterial.end_meassurement_id")
+    begin_alert = db.relationship('AlertMaterial', backref='beginmeasure', lazy=False,
+                                  foreign_keys="AlertMaterial.begin_meassurement_id")
+    end_alert = db.relationship('AlertMaterial', backref='endmeasure', lazy=False,
+                                foreign_keys="AlertMaterial.end_meassurement_id")
