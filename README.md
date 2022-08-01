@@ -33,3 +33,17 @@ API disponível em localhost:5000
 ```sh
 docker exec -it huddle-admin_db_1 psql -U postgres
 ```
+
+### Inserir uma task
+
+task = {'responsable_id':3,'status':'testee','date_to_complete':'10/10/2022 10:10:10','alert_id':9}
+fetch('/task/new', {
+  method: 'POST',
+  body: JSON.stringify(task),
+  headers: {
+    'Content-type': 'application/json; charset=UTF-8'
+  }
+})
+.then(res => res.json())
+.then(console.log)
+

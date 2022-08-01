@@ -8,9 +8,11 @@ from seed import *
 from models.equipment import *
 from models.material import *
 from models.alert import *
+from models.task import *
 from responses.material import *
 from responses.alert import *
-import datetime
+from responses.task import *
+from datetime import datetime
 from sqlalchemy.orm import aliased
 from dateutil import parser
 
@@ -91,7 +93,24 @@ def equipments():
 
     return jsonify(EquipmentMeasurement.query.all())
 
+@app.route("/tasks", methods=['GET'])
+def tasks():
+    query_tasks = Task.query.all()
+    
+    schema = TaskSchema(many=True)
+    result = schema.dumps(query_tasks)
+    return result
 
+@app.route("/task", methods=['POST'])
+def create_task():
+  created_at = datetime.now()
+  responsable_id = request.json['responsable_id']
+  status = request.json['status']
+  date_to_complete = datetime.strptime(request.json['date_to_complete'], '%d/%m/%Y %H:%M:%S')
+  alert_id = request.json['alert_id']
+  task = Task(created_at=created_at, responsable_id=responsable_id, status=status, date_to_complete=date_to_complete, alert_id=alert_id)
+  db.session.add(task)
+  db.session.commit()
 
 def handle_mqtt_material(obj):
     print("--------------------")
