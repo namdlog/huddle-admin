@@ -35,7 +35,6 @@ docker exec -it huddle-admin_db_1 psql -U postgres
 ```
 
 ### Inserir uma task
-
 task = {'responsable_id':3,'status':'testee','date_to_complete':'10/10/2022 10:10:10','alert_id':9}
 fetch('/task/new', {
   method: 'POST',
@@ -47,3 +46,32 @@ fetch('/task/new', {
 .then(res => res.json())
 .then(console.log)
 
+### Consultar uma task
+/task?taskId=[ID_DA_TASK]
+
+### Update task
+novaTask = {'id':1, 'status':'novo status','responsableId':4,'alertId':10,'dateToComplete': '2022-10-11T11:11:11'}
+fetch('/task', {
+  method: 'PUT',
+  body: JSON.stringify(novaTask),
+  headers: {
+    'Content-type': 'application/json; charset=UTF-8'
+  }
+})
+.then(res => res.json())
+.then(console.log)
+
+### Deletar task
+delecao = {'id':2}
+fetch('/task', {
+  method: 'DELETE',
+  body: JSON.stringify(delecao),
+  headers: {
+    'Content-type': 'application/json; charset=UTF-8'
+  }
+})
+.then(res => res.json())
+.then(console.log)
+
+### Consultar todas as tasks
+/tasks
