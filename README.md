@@ -16,6 +16,8 @@ docker-compose up db
 docker-compose run flask sh
 export FLASK_APP= main
 flask db init
+cd migrations
+mkdir versions
 flask db migrate 
 flask db upgrade
 
