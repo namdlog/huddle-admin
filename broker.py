@@ -1,13 +1,19 @@
-import json, os
-from flask_socketio import SocketIO
+import json
+import os
+from datetime import timedelta
+from dateutil import parser
 from flask_mqtt import Mqtt
 from sqlalchemy.orm import aliased
-
-from models.material import *
 from models.alert import Alert, AlertMaterial
+from models.material import *
 
 BROKER_TOPIC_MATERIAL = 'MATERIALS'
 BROKER_TOPIC_EQUIPMENT = 'HUDDLE_EQUIPAMENTOS'
+MIN_TEMPERATURE = float(os.getenv('MIN_TEMPERATURE', -35))
+MAX_TEMPERATURE = float(os.getenv('MAX_TEMPERATURE', 45))
+MIN_HUMIDITY = float(os.getenv('MIN_HUMIDITY', -35))
+MAX_HUMIDITY = float(os.getenv('MAX_HUMIDITY', 100))
+MIN_ELAPSED_TIME = int(os.getenv('MIN_ELAPSED_TIME_IN_SECONDS', 2))
 result_material = []
 result_equipment = []
 
@@ -20,36 +26,42 @@ def handle_mqtt_material(app, obj):
             device = Device(mac=obj["MACADDRESS"])
             db.session.add(device)
             db.session.commit()
-        sensor = SensorsMaterial.query.join(Device).filter(SensorsMaterial.id == int(obj["idSensor"])).filter(Device.mac == obj["MACADDRESS"]).first()
+        sensor = SensorsMaterial.query.join(Device).filter(SensorsMaterial.id == int(obj["idSensor"])).filter(
+            Device.mac == obj["MACADDRESS"]).first()
         if sensor is None:
             sensor = SensorsMaterial(id=int(obj["idSensor"]), device_id=device.id)
             db.session.add(sensor)
             db.session.commit()
-        timeOfMeasurements = parser.parse(obj['timeOfMessage'])
+        time_measurements = parser.parse(obj['timeOfMessage'])
         material = MaterialMeasurement(temperature=obj['temperature'], humidity=obj['humidity'],
-        timeOfMeasurements=timeOfMeasurements,sensor_id =sensor.id)
+                                       timeOfMeasurements=time_measurements, sensor_id=sensor.id)
         db.session.add(material)
         db.session.commit()
-        time_elapsed = int(os.getenv('MIN_ELAPSED_TIME_IN_SECONDS'))
-        last_relevant_measure = material.timeOfMeasurements - datetime.timedelta(seconds=time_elapsed)
-        min_temperature = float(os.getenv('MIN_TEMPERATURE'))
-        max_temperature = float(os.getenv('MAX_TEMPERATURE'))
-        min_humidity = float(os.getenv('MIN_HUMIDITY'))
-        max_humidity = float(os.getenv('MAX_HUMIDITY'))
-        query_material = MaterialMeasurement.query.filter(MaterialMeasurement.timeOfMeasurements > last_relevant_measure).all()
+        time_elapsed = MIN_ELAPSED_TIME
+        last_relevant_measure = material.timeOfMeasurements - timedelta(seconds=time_elapsed)
+        min_temperature = MIN_TEMPERATURE
+        max_temperature = MAX_TEMPERATURE
+        min_humidity = MIN_HUMIDITY
+        max_humidity = MAX_HUMIDITY
+        query_material = MaterialMeasurement.query.filter(
+            MaterialMeasurement.timeOfMeasurements > last_relevant_measure).all()
         last = query_material[-1]
-        temps_bool = [ m.temperature > max_temperature or m.temperature < min_temperature for m in query_material]
-        hum_bool = [ m.humidity > max_humidity or m.humidity < min_humidity for m in query_material]
-        if(all(temps_bool) or all(hum_bool)):
+        temps_bool = [m.temperature > max_temperature or m.temperature < min_temperature for m in query_material]
+        hum_bool = [m.humidity > max_humidity or m.humidity < min_humidity for m in query_material]
+        if all(temps_bool) or all(hum_bool):
             current_alert = AlertMaterial.query.first()
-            BeginMeasure = aliased(MaterialMeasurement)
-            EndMeasure = aliased(MaterialMeasurement)
-            current_alert = AlertMaterial.query.join(BeginMeasure,'beginmeasure').join(EndMeasure,'endmeasure').filter(BeginMeasure.timeOfMeasurements < last.timeOfMeasurements).filter(EndMeasure.timeOfMeasurements > last.timeOfMeasurements).first()
-            if current_alert == None:
+            begin_measure = aliased(MaterialMeasurement)
+            end_measure = aliased(MaterialMeasurement)
+            current_alert = AlertMaterial.query.join(begin_measure, 'beginmeasure')\
+                .join(end_measure, 'endmeasure').filter(
+                begin_measure.timeOfMeasurements < last.timeOfMeasurements).filter(
+                end_measure.timeOfMeasurements > last.timeOfMeasurements).first()
+            if current_alert is None:
                 alert = Alert()
                 db.session.add(alert)
                 db.session.commit()
-                alert_m = AlertMaterial(begin_meassurement_id = last.id , end_meassurement_id = material.id, alert_id= alert.id)
+                alert_m = AlertMaterial(begin_meassurement_id=last.id, end_meassurement_id=material.id,
+                                        alert_id=alert.id)
                 db.session.add(alert_m)
                 db.session.commit()
             else:
@@ -60,7 +72,6 @@ def handle_mqtt_material(app, obj):
 
 def setup_mqtt_broker(app):
     mqtt = Mqtt(app)
-    socketio = SocketIO(app)
 
     @mqtt.on_message()
     def handle_mqtt(client, userdata, message):
