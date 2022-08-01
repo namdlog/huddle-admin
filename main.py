@@ -3,8 +3,10 @@ from models.equipment import *
 from models.material import *
 from models.alert import *
 from models.task import *
+from models.user import *
 from responses.alert import *
 from responses.task import *
+from responses.user import *
 from app import setup_flask_app
 from broker import setup_mqtt_broker, result_material, MAX_HUMIDITY, MIN_HUMIDITY, MAX_TEMPERATURE, MIN_TEMPERATURE
 
@@ -129,6 +131,95 @@ def update_task():
 
     db.session.commit()
     return {}
+
+@app.route("/auth/cadastro", methods=['POST'])
+def create_user():
+  name = request.json['name']
+  email = request.json['email']
+  password = request.json['password']
+  isAdmin = request.json['isAdmin']
+  rfid = request.json['rfid']
+  card_type = request.json['card_type']
+  sector = request.json['sector']
+  extension_number = request.json['extension_number'] 
+  user = User (name = name, email = email, password = password, isAdmin = isAdmin, rfid = rfid, card_type = card_type, sector = sector, extension_number = extension_number)
+  db.session.add(user)
+  db.session.commit()
+
+@app.route("/auth/login", methods=['GET'])
+def login():
+    query_user = User.query\
+                         .filter(User.email == request.args["email"]).first()
+
+    schema = UserSchema(many=True)
+    result = schema.dumps(query_user)
+
+    if result is not None and result['password'] == request.args['password']:
+            return result
+
+    return 'User/password invalid'
+
+@app.route("/users", methods=['GET'])
+def users():
+    query_users = User.query.all()
+    
+    schema = UserSchema(many=True)
+    result = schema.dumps(query_users)
+    return result
+
+@app.route("/user", methods=['GET'])
+def user():
+    args = request.args
+    if "email" in args:
+        query_user = User.query\
+                         .filter(User.email == args["email"]).all()
+    else:
+      query_user = User.query.all()
+
+    schema = UserSchema(many=True)
+    result = schema.dumps(query_user)
+    return result
+
+@app.route("/user", methods=['DELETE'])
+def delete_user():
+    user_id = request.json['id']
+    if user_id >= 0:
+        User.query.filter(Task.id == user_id).delete()
+    else:
+      return {}
+
+    db.session.commit()
+    return {}
+
+@app.route("/user", methods=['PUT'])
+def update_user():
+    id = request.json['id']
+    name = request.json['name']
+    email = request.json['email']
+    password = request.json['password']
+    isAdmin = request.json['isAdmin']
+    rfid = request.json['rfid']
+    card_type = request.json['card_type']
+    sector = request.json['sector']
+    extension_number = request.json['extension_number']
+
+    if id >= 0:
+        user = User.query.get(id)
+        user.name = name
+        user.email = email
+        user.password = password
+        user.isAdmin = isAdmin
+        user.rfid = rfid
+        user.card_type = card_type
+        user.sector = sector
+        user.extension_number = extension_number
+    else:
+      return {}
+
+    db.session.commit()
+    return {}
+
+
 
 if __name__ == '__main__':
     print(mqtt.topics)
