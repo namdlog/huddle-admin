@@ -5,10 +5,11 @@ from dateutil import parser
 from flask_mqtt import Mqtt
 from sqlalchemy.orm import aliased
 from models.alert import Alert, AlertMaterial
+from models.equipment import EquipmentMeasurement
 from models.material import *
 
 BROKER_TOPIC_MATERIAL = 'MATERIALS'
-BROKER_TOPIC_EQUIPMENT = 'HUDDLE_EQUIPAMENTOS'
+BROKER_TOPIC_EQUIPMENT = 'EQUIPAMENTOS'
 MIN_TEMPERATURE = float(os.getenv('MIN_TEMPERATURE', -35))
 MAX_TEMPERATURE = float(os.getenv('MAX_TEMPERATURE', 45))
 MIN_HUMIDITY = float(os.getenv('MIN_HUMIDITY', -35))
@@ -93,5 +94,20 @@ def handle_mqtt_material(app, obj):
 
 
 def handle_mqtt_equipment(app, obj):
+    print('handle mqtt equipment')
     with app.app_context():
-        pass
+        device = Device.query.filter(Device.mac == obj["MACADDRESS"]).first()
+        if device is None:
+            device = Device(mac=obj["MACADDRESS"])
+            db.session.add(device)
+            db.session.commit()
+        
+        rfid = obj["equipamentTag"]
+        time = obj["timeOfMessage"]
+        equipment = EquipmentMeasurement.query.filter(EquipmentMeasurement.rfid==rfid and EquipmentMeasurement.timeOfMeasurement==time).first()
+        if equipment is None:
+            equipment = EquipmentMeasurement(
+                rfid=rfid, status="TODO", timeOfMeasurement=time)
+            db.session.add(equipment)
+            db.session.commit()
+        
