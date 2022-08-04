@@ -27,7 +27,7 @@ def run_db_migration(app):
     print(app.config['sqlalchemy.url'])
     print(app.config['MQTT_BROKER_URL'])
     db.init_app(app)
-    migrate = Migrate()
+    migrate = Migrate(compare_type=True)
     migrate.init_app(app, db)
     with app.app_context():
         from flask_migrate import upgrade as _upgrade
