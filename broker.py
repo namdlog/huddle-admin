@@ -18,6 +18,31 @@ result_material = []
 result_equipment = []
 
 
+def setup_mqtt_broker(app):
+    mqtt = Mqtt(app)
+
+    @mqtt.on_message()
+    def handle_mqtt(client, userdata, message):
+        data = dict(
+            topic=message.topic,
+            payload=json.loads(message.payload.decode())
+        )
+        result_material.append(data['payload'])
+        obj = data['payload']
+        if data["topic"] == BROKER_TOPIC_MATERIAL:
+            handle_mqtt_material(app, obj)
+        elif data["topic"] == BROKER_TOPIC_EQUIPMENT:
+            handle_mqtt_equipment(app, obj)
+
+    @mqtt.on_log()
+    def handle_logging(client, userdata, level, buf):
+        print(level, buf)
+
+    mqtt.subscribe(BROKER_TOPIC_MATERIAL)
+    mqtt.subscribe(BROKER_TOPIC_EQUIPMENT)
+    return mqtt
+
+
 def handle_mqtt_material(app, obj):
     print("--------------------")
     with app.app_context():
@@ -37,17 +62,14 @@ def handle_mqtt_material(app, obj):
                                        timeOfMeasurements=time_measurements, sensor_id=sensor.id)
         db.session.add(material)
         db.session.commit()
-        time_elapsed = MIN_ELAPSED_TIME
-        last_relevant_measure = material.timeOfMeasurements - timedelta(seconds=time_elapsed)
-        min_temperature = MIN_TEMPERATURE
-        max_temperature = MAX_TEMPERATURE
-        min_humidity = MIN_HUMIDITY
-        max_humidity = MAX_HUMIDITY
+        last_relevant_measure = material.timeOfMeasurements - timedelta(seconds=MIN_ELAPSED_TIME)
         query_material = MaterialMeasurement.query.filter(
             MaterialMeasurement.timeOfMeasurements > last_relevant_measure).all()
         last = query_material[-1]
-        temps_bool = [m.temperature > max_temperature or m.temperature < min_temperature for m in query_material]
-        hum_bool = [m.humidity > max_humidity or m.humidity < min_humidity for m in query_material]
+        temps_bool = [m.temperature > MAX_TEMPERATURE or m.temperature <
+                      MIN_TEMPERATURE for m in query_material if m.temperature != None]
+        hum_bool = [m.humidity > MAX_HUMIDITY or m.humidity <
+                    MIN_HUMIDITY for m in query_material if m.humidity != None]
         if all(temps_bool) or all(hum_bool):
             current_alert = AlertMaterial.query.first()
             begin_measure = aliased(MaterialMeasurement)
@@ -70,24 +92,6 @@ def handle_mqtt_material(app, obj):
                 db.session.commit()
 
 
-def setup_mqtt_broker(app):
-    mqtt = Mqtt(app)
-
-    @mqtt.on_message()
-    def handle_mqtt(client, userdata, message):
-        data = dict(
-            topic=message.topic,
-            payload=json.loads(message.payload.decode())
-        )
-        result_material.append(data['payload'])
-        obj = data['payload']
-        if data["topic"] == "MATERIALS":
-            handle_mqtt_material(app, obj)
-
-    @mqtt.on_log()
-    def handle_logging(client, userdata, level, buf):
-        print(level, buf)
-
-    mqtt.subscribe(BROKER_TOPIC_MATERIAL)
-    mqtt.subscribe(BROKER_TOPIC_EQUIPMENT)
-    return mqtt
+def handle_mqtt_equipment(app, obj):
+    with app.app_context():
+        pass
