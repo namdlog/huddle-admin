@@ -1,7 +1,7 @@
 version: '3'
 services:
   flask:
-      build: .
+      image: thiagomachado/huddle-admin:latest
       container_name: flask
       restart: unless-stopped
       ports:
